@@ -1,0 +1,5 @@
+
+    profile_picture = request.files['profile_picture']
+    base_file_name = "profile_pictures/" + "%s-%s" % (str(uuid4()), secure_filename(profile_picture.filename))
+    url = 'https://%s.s3.amazonaws.com/%s' % ("dhcapi", base_file_name)
+    image = url

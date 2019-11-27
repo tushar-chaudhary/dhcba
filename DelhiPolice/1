@@ -1,0 +1,235 @@
+from selenium import webdriver
+from time import sleep
+from selenium.webdriver.chrome.options import Options
+from selenium.webdriver.support.ui import Select
+from lxml import etree
+from io import StringIO
+import requests
+
+
+chrome_options = Options()
+chrome_options.add_argument('--headless')
+chrome_options.add_argument('--no-sandbox')
+chrome_options.add_argument('--disable-dev-shm-usage')
+
+
+driver = webdriver.Chrome('/usr/bin/chromedriver',chrome_options=chrome_options)
+
+
+def delhiPoliceFirBefore2015(district, policestation, caseyear, firno):
+    driver.get('http://59.180.234.21:85/index.aspx')
+
+
+    district_name = Select(driver.find_element_by_id("ddlDistrict"))
+    district_name.select_by_visible_text(district)
+    sleep(2)
+
+    policestn_name = Select(driver.find_element_by_id("ddlPS"))
+    policestn_name.select_by_visible_text(policestation)
+
+    year = Select(driver.find_element_by_id("ddlYear"))
+    year.select_by_visible_text(caseyear)
+
+    search_box1 = driver.find_element_by_id("txtRegNo")
+    search_box1.send_keys(firno)
+
+    driver.find_element_by_id("btnSearch").click()
+    sleep(2)
+
+    html_page=driver.page_source
+
+    parser = etree.HTMLParser()
+    tree = etree.parse(StringIO(html_page), parser)
+
+    firData = []
+    trindex = 2
+    try:
+        while len(tree.xpath('//*[@id="DgRegist"]/tbody/tr[{}]//text()'.format(trindex))) > 3:
+            trrow = tree.xpath('//*[@id="DgRegist"]/tbody/tr[{}]//text()'.format(trindex))
+            trrow_striped = []
+            for td in trrow:
+                if(td.strip() != ''):
+                    trrow_striped.append(td)
+            try:
+                link = driver.find_element_by_xpath('//*[@id="DgRegist_ctl0{}_imgDelete"]'.format(trindex + 1))
+                link.click()
+                sleep(2)
+                trrow_striped.append(driver.find_element_by_id('divAutomobile').text)
+            except Exception as e:
+                print(e)
+                trrow_striped.append("no content")
+
+
+            firData.append({
+                'firno': trrow_striped[0],
+                'firyear': trrow_striped[1],
+                'firdate': trrow_striped[2],
+                'linkData': trrow_striped[3]
+            })
+
+
+
+            trindex += 1
+    except:
+        print("##############################################")
+
+    driver.close()
+    driver.quit()
+
+
+
+    return firData
+
+
+
+print(delhiPoliceFirBefore2015('NEW DELHI DISTT', 'CON. PLACE', '2014', '12'))
+
+
+
+def getDelhiPolicestationBefore2015(districtCodes):
+    policestation = [{'162': [{'ANAND PARBAT': '01'}, {'CHANDANI MAHAL': '08'}, {'D.B.G. ROAD': '38'},
+                              {'DARYA GANJ': '10'}, {'HAUZ QAZI': '15'}, {'I.P. ESTATE': '16'}, {'JAMA MASJID': '19'},
+                              {'KAMLA MKT.': '23'}, {'KAROL BAGH': '26'}, {'NABI KARIM': '30'}, {'PAHAR GANJ': '41'},
+                              {'PARSAD NAGAR': '40'}, {'PATEL NAGAR': '42'}, {'RAJINDER NAGAR': '45'},
+                              {'RANJIT NAGAR': '56'}]}, {
+                         '164': [{'ANAND VIHAR RLY STATION': '04'}, {'CRIME BRANCH': '02'},
+                                 {'e-Police Station M.V. Theft': '46'}, {'E.O.W': '39'}, {'H.N.DIN STN.': '32'},
+                                 {'IGI AIRPORT METRO': '08'}, {'KALKAJI METRO': '06'}, {'KASHMIRI GATE METRO': '38'},
+                                 {'N.D.L.S.': '26'}, {'NARCOTIC CELL': '01'}, {'NARCOTICS': '27'},
+                                 {'QUTUB MINAR': '07'}, {'R.M.D. MAIN': '25'}, {'RAJOURI GARDEN METRO STATION': '40'},
+                                 {'RITHALA METRO STATION': '36'}, {'SARAI ROHILLA STN.': '34'},
+                                 {'SHASTRI PARK METRO STATION': '37'}, {'YAMUNA DEPOT METRO': '05'}]},
+                     {'168': [{'ANAND VIHAR': '01'}, {'FARSH BAZAR': '07'}, {'GANDHI NAGAR': '11'},
+                              {'GEETA COLONY': '12'}, {'GHAZIPUR': '10'}, {'JAGAT PURI': '14'}, {'KALYAN PURI': '13'},
+                              {'KIRSHNA NAGAR': '20'}, {'MADHU VIHAR': '23'}, {'MANDAWALI': '24'},
+                              {'MAYUR VIHAR': '26'}, {'NEW ASHOK NAGAR': '28'}, {'PANDAV NAGAR': '50'},
+                              {'PREET VIHAR': '30'}, {'SHAKAR PUR': '41'}, {'VIVEK VIHAR': '09'}]},
+                     {'169': [{'DOMESTIC AIRPORT': '01'}, {'IGI AIRPORT': '02'}, {'MAHIPAL PUR': '03'}]},
+                     {'165': [{'BARAKHAMBA ROAD': '02'}, {'CHANAKYA PURI': '07'}, {'CON. PLACE': '11'},
+                              {'EXH. GROUN': '12'}, {'MANDIR MARG': '15'}, {'PT. STREET': '22'}, {'TILAK MARG': '35'},
+                              {'TUGLAK ROAD': '36'}]},
+                     {'166': [{'B.H.RAO': '04'}, {'BURARI': '52'}, {'CIVIL LINES': '07'}, {'GULABI BAGH': '24'},
+                              {'K.GATE': '16'}, {'KOTWALI': '18'}, {'LAHORI GATE': '23'}, {'MOURICE NAGAR': '10'},
+                              {'ROOP NAGAR': '31'}, {'SADAR BAZAR': '38'}, {'SARAI ROHILLA': '39'},
+                              {'SUBZI MANDI': '41'}, {'TIMAR PUR': '51'}]},
+                     {'173': [{'BHAJAN PURA': '05'}, {'DILSHAD GARDEN': '07'}, {'G.T.B. ENCLAVE': '20'},
+                              {'GOKUL PURI': '54'}, {'HARSH VIHAR': '55'}, {'JYOTI  NAGAR': '56'},
+                              {'KARAWAL NAGAR': '16'}, {'KHAJURI KHAS': '15'}, {'M.S. PARK': '21'},
+                              {'NAND  NAGARI': '25'}, {'NEW USMAN PUR': '30'}, {'SEELAM PUR': '42'},
+                              {'SEEMA PURI': '44'}, {'SHAHADRA': '40'}, {'SONIA VIHAR': '57'}, {'WELCOME': '45'},
+                              {'ZAFRABAD': '58'}]},
+                     {'172': [{'ADARSH NAGAR': '03'}, {'ASHOK VIHAR': '06'}, {'BHALSWA DAIRY': '08'},
+                              {'BHARAT NAGAR': '07'}, {'JAHANGIR PURI': '14'}, {'KESHAV PURAM': '25'},
+                              {'MAHENDRA PARK': '51'}, {'MAURYA ENCLAVE': '49'}, {'MODEL TOWN': '17'},
+                              {'MUKHERJI NAGAR': '30'}, {'RANI BAGH': '50'}, {'SHALIMAR BAGH': '35'},
+                              {'SUBHASH PLACE': '47'}, {'SWAROOP NAGAR': '36'}]},
+                     {'174': [{'ALIPUR': '01'}, {'AMAN VIHAR': '08'}, {'BAWANA': '09'}, {'BEGUM PUR': '15'},
+                              {'K.N.KATJU MARG': '16'}, {'KANJHAWLA': '10'}, {'MANGOL PURI': '05'}, {'NARELA': '02'},
+                              {'NORTH ROHINI': '17'}, {'PRASHANT VIHAR': '14'}, {'SAMAI PUR BADLI': '03'},
+                              {'SHAHBAD DAIRY': '13'}, {'SOUTH ROHINI': '07'}, {'SULTAN PURI': '11'},
+                              {'VIJAY VIHAR': '12'}]},
+                     {'167': [{'DEFENCE COLONY': '10'}, {'FATEHPUR BERI': '12'}, {'HAUZ KHAS': '17'}, {'K.M.PUR': '23'},
+                              {'LODHI COLONY': '28'}, {'MALVIYA NAGAR': '33'}, {'MEHRAULI': '32'}, {'NEB SARAI': '57'},
+                              {'R. K. PURAM': '41'}, {'S.N.PURI': '45'}, {'SAFDARJUNG ENCLAVE': '47'}, {'SAKET': '56'},
+                              {'SAROJINI NAGAR': '46'}, {'SOUTH CAMPUS': '11'}, {'VASANT KUNJ NORTH': '58'},
+                              {'VASANT KUNJ SOUTH': '60'}, {'VASANT VIHAR': '59'}]},
+                     {'955': [{'AMAR COLONY': '07'}, {'AMB. NAGAR': '15'}, {'BADAR PUR': '12'}, {'C. R. PARK': '10'},
+                              {'GOVIND PURI': '02'}, {'GREATER KAILASH': '08'}, {'H. N. DIN': '05'}, {'JAIT PUR': '01'},
+                              {'JAMIA NAGAR': '04'}, {'KALKAJI': '09'}, {'LAJPAT NAGAR': '06'}, {'N. F. COLONY': '03'},
+                              {'O. I. ESTATE': '13'}, {'PUR PRAHLAD PUR': '17'}, {'SANGAM VIHAR': '14'},
+                              {'SARITA VIHAR': '11'}, {'SUNLIGHT COLONY': '16'}]},
+                     {'171': [{'BABA HARIDAS NAGAR': '05'}, {'BINDA PUR': '04'}, {'CHHAWALA': '58'}, {'DABRI': '10'},
+                              {'DELHI CANTT': '11'}, {'DWARKA NORTH': '15'}, {'DWARKA SECTOR 23': '16'},
+                              {'DWARKA SOUTH': '14'}, {'INDER PURI': '17'}, {'J.P. KALAN': '20'}, {'KAPSHERA': '30'},
+                              {'NAJAFGARH': '32'}, {'NARAINA': '35'}, {'PALAM VILLAGE': '57'}, {'SAGAR PUR': '54'}]},
+                     {'954': [{'SPECIAL CELL': '01'}]},
+                     {'953': [{'C.A.W NANAK PURA': '01'}]},
+                     {'161': [{'VIGILANCE': '01'}]},
+                     {'170': [{'HARI NAGAR': '15'}, {'JANAK PURI': '21'}, {'KHYALA': '62'}, {'KIRTI NAGAR': '25'},
+                              {'MADI PUR': '26'}, {'MAYA PURI': '28'}, {'MIANWALI NAGAR': '30'}, {'MOTI NAGAR': '29'},
+                              {'MUNDKA': '27'}, {'NANGLOI': '33'}, {'NIHAL VIHAR': '61'}, {'PASCHIM VIHAR': '44'},
+                              {'PUNJABI BAGH': '43'}, {'RAJOURI GARDEN': '37'}, {'RANHOLA': '38'},
+                              {'TILAK NAGAR': '51'}, {'UTTAM NAGAR': '55'}, {'VIKAS PURI': '60'}]}]
+
+
+    for station in policestation:
+        if(list(station.keys())[0] == districtCodes):
+            return (station)
+
+
+def getPoliceDistrictBefore2015():
+    return [{'CENTRAL DISTT': '162'}, {'CRIME AND RAILWAYS': '164'}, {'EAST DELHI DISTT': '168'}, {'IGI DISTT': '169'}, {'NEW DELHI DISTT': '165'}, {'NORTH DISTT': '166'}, {'NORTH EAST DISTT': '173'}, {'NORTH WEST DISTT': '172'}, {'OUTER DISTT': '174'}, {'SOUTH DISTT': '167'}, {'SOUTH EAST DISTT': '955'}, {'SOUTH WEST DISTT': '171'}, {'SPECIAL CELL DISTT': '954'}, {'SPUW & C DISTT': '953'}, {'VIGILANCE': '161'}, {'WEST DISTT': '170'}]
+
+
+
+
+def getDelhiPolicestationAfter2015(districtCodes):
+    policestation = [{ '8162': [{'ANAND PARBAT': '8162001'}, {'CHANDNI MAHAL': '8162008'}, {'D.B.G. ROAD': '8162038'}, {'DARYA GANJ': '8162010'}, {'HAUZ QAZI': '8162015'}, {'I.P.ESTATE': '8162016'}, {'JAMA MASJID': '8162019'}, {'KAMLA MARKET': '8162023'}, {'KAROL BAGH': '8162026'}, {'NABI KARIM': '8162030'}, {'PAHAR GANJ': '8162041'}, {'PATEL NAGAR': '8162042'}, {'PRASAD NAGAR': '8162040'}, {'RAJINDER NAGAR': '8162045'}, {'RANJIT NAGAR': '8162056'}] },
+                 {'8175': [{'CRIME BRANCH': '8175001'}]},
+                 {'8176': [{'BABA HARIDAS NAGAR': '8176009'}, {'BINDA PUR': '8176001'}, {'CHHAWALA': '8176007'}, {'DABRI': '8176002'}, {'DWARKA NORTH': '8176004'}, {'DWARKA SOUTH': '8176003'}, {'JAFFARPUR KALAN': '8176006'}, {'MOHAN GARDEN': '8176012'}, {'NAJAF GARH': '8176010'}, {'SECTOR 23 DWARKA': '8176005'}, {'UTTAM NAGAR': '8176008'}]},
+                 {'8168': [{'ANAND VIHAR(EAST)': '8168001'}, {'FARSH BAZAR(EAST)': '8168007'}, {'GANDHI NAGAR(EAST)': '8168011'}, {'GEETA COLONY(EAST)': '8168012'}, {'GHAZIPUR': '8168010'}, {'JAGAT PURI(EAST)': '8168014'}, {'KALYANPURI': '8168013'}, {'KRISHNA NAGAR(EAST)': '8168020'}, {'LAXMI NAGAR': '8168054'}, {'MADHU VIHAR': '8168023'}, {'MANDAWLI FAZAL PUR': '8168024'}, {'MAYUR VIHAR PH-I': '8168026'}, {'NEW ASHOK NAGAR': '8168028'}, {'PANDAV NAGAR': '8168050'}, {'PATPARGANJ INDUSTRIAL AREA': '8168053'}, {'PREET VIHAR': '8168030'}, {'SHAKARPUR': '8168052'}, {'SHAKARPUR(EAST)': '8168041'}, {'VIVEK VIHAR(EAST)': '8168009'}]},
+                 {'8956': [{'ECONOMIC OFFENCES WING': '8956001'}]},
+                 {'8169': [{'DOMESTIC AIRPORT': '8169001'}, {'I.G.I.AIRPORT': '8169002'}]},
+                 {'8160': [{'IGI AIRPORT METRO': '8160004'}, {'INA METRO': '8160011'}, {'JANAK PURI METRO': '8160010'}, {'KASHMIRI GATE METRO': '8160007'}, {'Metro Police Station Azadpur': '8160015'}, {'Metro Police Station Ghitorni': '8160003'}, {'Metro Police Station Nangloi': '8160009'}, {'Metro Police Station Netaji Subhash Place': '8160016'}, {'Metro Police Station Okhla Vihar': '8160002'}, {'Metro Police Station Pragati Maidan': '8160014'}, {'Metro Police Station Rajiv Chowk': '8160012'}, {'Nehru Place Metro': '8160013'}, {'RAJA GARDEN METRO': '8160008'}, {'RITHALA METRO': '8160005'}, {'SHASHTRI PARK METRO': '8160006'}, {'YAMUNA DEPOT METRO': '8160001'}]},
+                 {'8165': [{'BARAKHAMBA ROAD': '8165002'}, {'CHANKYA PURI': '8165007'}, {'CONNAUGHT PLACE': '8165011'}, {'IITF,Pragati Maidan': '8165012'}, {'MANDIR MARG': '8165015'}, {'NORTH AVENUE': '8165038'}, {'PARLIAMENT STREET': '8165022'}, {'SOUTH AVENUE': '8165037'}, {'TILAK MARG': '8165035'}, {'TUGHLAK ROAD': '8165036'}]},
+                 {'8166': [{'BARA HINDU RAO': '8166004'}, {'BURARI': '8166052'}, {'CIVIL LINES': '8166007'}, {'GULABI BAGH': '8166024'}, {'KASHMERI GATE': '8166016'}, {'KOTWALI': '8166018'}, {'LAHORI GATE': '8166023'}, {'MAURICE NAGAR': '8166010'}, {'ROOP NAGAR': '8166031'}, {'SADAR BAZAR': '8166038'}, {'SARAI ROHILLA': '8166039'}, {'SUBZI MANDI': '8166041'}, {'TIMARPUR': '8166051'}, {'WAZIRABAD': '8166054'}]},
+                 {'8173': [{'BHAJAN PURA': '8173005'}, {'DAYAL PUR': '8173061'}, {'G.T.B. ENCLAVE(NORTH EAST)': '8173020'}, {'GOKUL PURI': '8173054'}, {'HARSH VIHAR': '8173055'}, {'JAFRABAD': '8173058'}, {'JYOTI NAGAR': '8173056'}, {'KARAWAL NAGAR': '8173016'}, {'KHAJURI KHAS': '8173015'}, {'MANSAROVAR PARK(NORTH EAST)': '8173021'}, {'NAND NAGRI': '8173025'}, {'NEW USMANPUR': '8173030'}, {'SEELAMPUR': '8173042'}, {'SEEMAPURI(NORTH EAST)': '8173044'}, {'SHAHDARA(NORTH EAST)': '8173040'}, {'SHASTRI PARK': '8173060'}, {'SONIA VIHAR': '8173057'}, {'WELCOME': '8173045'}]},
+                 {'8172': [{'ADARSH NAGAR': '8172003'}, {'ASHOK VIHAR': '8172006'}, {'BHALSWA DAIRY(NORTH WEST)': '8172008'}, {'BHARAT NAGAR': '8172007'}, {'JAHANGIR PURI': '8172014'}, {'KESHAV PURAM': '8172025'}, {'MAHENDRA PARK': '8172051'}, {'MAURYA ENCLAVE': '8172049'}, {'MODEL TOWN': '8172017'}, {'MUKHERJEE NAGAR': '8172030'}, {'RANI BAGH(NORTH WEST)': '8172050'}, {'SHALIMAR BAGH': '8172035'}, {'SUBHASH PLACE': '8172047'}, {'SWAROOP NAGAR(NORTH WEST)': '8172036'}]},
+                 {'8174': [{'ALIPUR(OUTER)': '8174001'}, {'AMAN VIHAR(OUTER)': '8174008'}, {'BABA HARIDAS NAGAR(OUTER)': '8174018'}, {'BAWANA(OUTER)': '8174009'}, {'BEGUM PUR(OUTER)': '8174015'}, {'K.N. KATJU MARG(OUTER)': '8174016'}, {'KANJHAWALA(OUTER)': '8174010'}, {'MANGOL PURI': '8174005'}, {'MIANWALI NAGAR(OUTER)': '8174023'}, {'MUNDKA': '8174025'}, {'NAJAF GARH(OUTER)': '8174019'}, {'NANGLOI': '8174021'}, {'NIHAL VIHAR': '8174022'}, {'NORTH ROHINI(OUTER)': '8174017'}, {'PASCHIM VIHAR EAST': '8174026'}, {'PASCHIM VIHAR WEST': '8174027'}, {'PASCHIM VIHAR(OUTER)': '8174024'}, {'PRASHANT VIHAR(OUTER)': '8174014'}, {'RAJ PARK': '8174029'}, {'RANHOLA': '8174020'}, {'RANI BAGH': '8174028'}, {'SAMAIPUR BADLI(OUTER)': '8174003'}, {'SHAHBAD DAIRY(OUTER)': '8174013'}, {'SOUTH ROHINI(OUTER)': '8174007'}, {'SULTANPURI': '8174011'}, {'VIJAY VIHAR(OUTER)': '8174012'}]},
+                 {'8991': [{'ALIPUR': '8991006'}, {'BAWANA': '8991004'}, {'BHALSWA DAIRY': '8991003'}, {'NARELA': '8991007'}, {'NARELA INDUSTRIAL AREA': '8991001'}, {'SAMAIPUR BADLI': '8991008'}, {'SHAHBAD DAIRY': '8991005'}, {'SWAROOP NAGAR': '8991002'}]},
+                 {'8164': [{'ANAND VIHAR RLY STN': '8164004'}, {'DELHI CANTT. RAILWAY STATION': '8164041'}, {'HAZRAT NIZAMUDDIN RLY STN': '8164032'}, {'NEW DELHI RLY. STN.': '8164026'}, {'OLD DELHI (DELHI MAIN) RLY. STN.': '8164025'}, {'SARAI ROHILLA STATION': '8164034'}, {'SUBZI MANDI RAILWAY STATION': '8164042'}]},
+                 {'8959': [{'ALIPUR(ROHINI)': '8959004'}, {'AMAN VIHAR': '8959016'}, {'BAWANA(ROHINI)': '8959001'}, {'BEGUM PUR': '8959003'}, {'BUDH VIHAR': '8959014'}, {'K.N. KATJU MARG': '8959007'}, {'KANJHAWALA': '8959015'}, {'NARELA(ROHINI)': '8959005'}, {'NORTH ROHINI': '8959011'}, {'PRASHANT VIHAR': '8959008'}, {'PREM NAGAR': '8959013'}, {'SAMAIPUR BADLI(ROHINI)': '8959006'}, {'SHAHBAD DAIRY(ROHINI)': '8959002'}, {'SOUTH ROHINI': '8959010'}, {'VIJAY VIHAR': '8959009'}]},
+                 {'8957': [{'ANAND VIHAR': '8957002'}, {'FARSH BAZAR': '8957006'}, {'G.T.B. ENCLAVE': '8957009'}, {'GANDHI NAGAR': '8957004'}, {'GEETA COLONY': '8957005'}, {'JAGAT PURI': '8957011'}, {'KRISHNA NAGAR': '8957003'}, {'MANSAROVAR PARK': '8957008'}, {'SEEMAPURI': '8957010'}, {'SHAHDARA': '8957007'}, {'VIVEK VIHAR': '8957001'}]},
+                 {'8167': [{'AMBEDKAR NAGAR': '8167064'}, {'CHITRANJAN PARK': '8167062'}, {'DEFENCE COLONY': '8167010'}, {'FATEHPUR BERI': '8167012'}, {'GREATER KAILASH': '8167061'}, {'HAUZ KHAS': '8167017'}, {'K.M. PUR': '8167023'}, {'LODI COLONY': '8167028'}, {'MAIDAN GARHI': '8167066'}, {'MALVIYA NAGAR': '8167033'}, {'MEHRAULI': '8167032'}, {'NEB SARAI': '8167057'}, {'R. K. PURAM(SOUTH)': '8167041'}, {'SAFDARJUNG ENCLAVE(SOUTH)': '8167047'}, {'SAKET': '8167056'}, {'SANGAM VIHAR': '8167063'}, {'SAROJINI NAGAR(SOUTH)': '8167046'}, {'SOUTH CAMPUS(SOUTH)': '8167011'}, {'TIGRI': '8167067'}, {'VASANT KUNJ NORTH(SOUTH)': '8167058'}, {'VASANT KUNJ SOUTH(SOUTH)': '8167060'}, {'VASANT VIHAR(SOUTH)': '8167059'}]},
+                 {'8171': [{'BABA HARIDAS NAGAR(SOUTH WEST)': '8171005'}, {'BINDA PUR(SOUTH WEST)': '8171004'}, {'CHHAWALA(SOUTH WEST)': '8171058'}, {'DABRI(SOUTH WEST)': '8171010'}, {'DELHI CANTT': '8171011'}, {'DWARKA NORTH(SOUTH WEST)': '8171015'}, {'DWARKA SOUTH(SOUTH WEST)': '8171014'}, {'INDER PURI(SOUTH WEST)': '8171017'}, {'JAFFARPUR KALAN(SOUTH WEST)': '8171020'}, {'KAPASHERA': '8171030'}, {'KISHAN GARH': '8171066'}, {'NAGAF GARH(SOUTH WEST)': '8171032'}, {'NARAINA(SOUTH WEST)': '8171035'}, {'PALAM VILLAGE': '8171057'}, {'R. K. PURAM': '8171060'}, {'SAFDARJUNG ENCLAVE': '8171067'}, {'SAGAR PUR': '8171054'}, {'SAROJINI NAGAR': '8171068'}, {'SECTOR 23 DWARKA(SOUTH WEST)': '8171016'}, {'SOUTH CAMPUS': '8171061'}, {'UTTAM NAGAR(SOUTH WEST)': '8171059'}, {'VASANT KUNJ NORTH': '8171062'}, {'VASANT KUNJ SOUTH': '8171063'}, {'VASANT VIHAR': '8171064'}]},
+                 {'8955': [{'AMAR COLONY': '8955007'}, {'AMBEDKAR NAGAR(SOUTH EAST)': '8955015'}, {'BADARPUR': '8955012'}, {'CHITRANJAN PARK(SOUTH EAST)': '8955010'}, {'GOVIND PURI': '8955002'}, {'GREATER KAILASH(SOUTH EAST)': '8955008'}, {'HAZARAT NIZAMUDDIN': '8955005'}, {'JAIT PUR': '8955001'}, {'JAMIA NAGAR': '8955004'}, {'KALANDI KUNJ': '8955019'}, {'KALKAJI': '8955009'}, {'LAJPAT NAGAR': '8955006'}, {'NEW FRIENDS COLONY': '8955003'}, {'OKHLA INDUSTRIAL AREA': '8955013'}, {'PUL PRAHLAD PUR': '8955017'}, {'SANGAM VIHAR(SOUTH EAST)': '8955014'}, {'SARITA VIHAR': '8955011'}, {'SHAHEEN BAGH': '8955020'}, {'SUNLIGHT COLONY': '8955016'}]},
+                 {'8954': [{'SPECIAL CELL (SB)': '8954001'}]},
+                 {'8953': [{'CRIME (WOMEN) CELL NANAK PURA': '8953001'}]},
+                 {'8161': [{'VIGILANCE PS': '8161001'}]},
+                 {'8170': [{'HARI NAGAR': '8170015'}, {'INDER PURI': '8170064'}, {'JANAK PURI': '8170021'}, {'KHYALA': '8170062'}, {'KIRTI NAGAR': '8170025'}, {'MAYAPURI': '8170028'}, {'MIANWALI NAGAR(WEST)': '8170030'}, {'MOTI NAGAR': '8170029'}, {'MUNDKA(WEST)': '8170027'}, {'NANGLOI(WEST)': '8170033'}, {'NARAINA': '8170063'}, {'NIHAL VIHAR(WEST)': '8170061'}, {'PASCHIM VIHAR(WEST)': '8170044'}, {'PUNJABI BAGH': '8170043'}, {'RAJOURI GARDEN': '8170037'}, {'RANHOLA(WEST)': '8170038'}, {'TILAK NAGAR': '8170051'}, {'UTTAM NAGAR(WEST)': '8170055'}, {'VIKASPURI': '8170060'}]}]
+
+    for station in policestation:
+        if(list(station.keys())[0] == districtCodes):
+            return (station)
+
+
+def getPoliceDistrictAfter2015():
+    return [{'CENTRAL': '8162'}, {'CRIME BRANCH': '8175'}, {'DWARKA': '8176'}, {'EAST': '8168'}, {'EOW': '8956'}, {'IGI AIRPORT': '8169'}, {'METRO': '8160'}, {'NEW DELHI': '8165'}, {'NORTH': '8166'}, {'NORTH EAST': '8173'}, {'NORTH WEST': '8172'}, {'OUTER DISTRICT': '8174'}, {'OUTER NORTH': '8991'}, {'RAILWAYS': '8164'}, {'ROHINI': '8959'}, {'SHAHDARA': '8957'}, {'SOUTH': '8167'}, {'SOUTH WEST': '8171'}, {'SOUTH-EAST': '8955'}, {'SPECIAL CELL(SB)': '8954'}, {'SPECIAL POLICE UNIT FOR WOMEN & CHILDREN': '8953'}, {'VIGILANCE': '8161'}, {'WEST': '8170'}]
+
+
+
+
+
+
+
+def delhiPoliceFirAfter2015(sdis_no,sps_no, year, firno):
+
+    headers={'Content-Type':'application/x-www-form-urlencoded','User-Agent':'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_11_6) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/63.0.3239.132 Safari/537.36','Host':'59.180.234.21:8080','Content-Length':'125'}
+    url = "http://59.180.234.21:8080/citizen/regfirsearchpage.htm"
+    payload='sdistrict='+str(sdis_no)+'&spolicestation='+str(sps_no)+'&firFromDateStr=&firToDateStr=&regFirNo='+firno+'&radioValue=undefined&searchName=&firYear='+year
+
+    r = requests.post(url, headers=headers, params=payload)
+
+    #r = requests.post(url, headers=headers, params=payload)
+    p=r.json()
+
+
+    date=[]
+    record_created_on=[]
+    firNumDisp=[]
+    pdf_link=[]
+
+    for i in p['list']:
+        date.append(i['firRegDate'])
+        record_created_on.append(i["recordCreatedOn"])
+        firNumDisp.append(i["firNumDisplay"])
+        pdf_link.append("https://docs.google.com/viewer?url=http://59.180.234.21:8080/citizen/gefirprint.htm?firRegNo="+i["firRegNum"])
+
+    if(date==[]):
+        return {"success": False}
+    else:
+        return {"success": True, "FIR_NUMBERS": firNumDisp, "FIR_DATES": date, "RECORDS_CREATED_ON": record_created_on, "FIR_LINKS": pdf_link}
+
+
+
+
